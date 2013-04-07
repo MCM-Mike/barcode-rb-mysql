@@ -73,6 +73,7 @@ def add_information
 		db.close
 	end
 	puts "Information added successfully!"
+	home_screen
 end
 
 # This function allows the user to delete information from the database
@@ -91,7 +92,8 @@ def delete_information
 	ensure # Close the connection to the database
 		db.close
 	end
-	puts "Information updated successfully!"
+	print "Information deleted successfully!\n"
+	home_screen
 end
 
 def update_information
@@ -157,16 +159,18 @@ def update_information
 		end
 	end
 	puts "Information updated successfully!"
+	home_screen
 end
 
 # This function displays the home screen for the application
 def home_screen
-	puts "Welcome to the Ruby/MySQL Inventory Application!"
+	print "\n"
 	puts "What would you like to do?"
 	puts "1: List Database Contents"
 	puts "2: Enter New Item Into Database"
 	puts "3: Remove Item From Database"
 	puts "4: Update Item Information"
+	puts "5: Exit"
 	user_choice = gets.strip
 	case user_choice
 	when "1"
@@ -177,10 +181,13 @@ def home_screen
 		delete_information
 	when "4"
 		update_information
+	when "5"
+		abort "Goodbye!"
 	else
 		puts "You entered an incorrect option."
 	end
 end
 
 
+puts "Welcome to the Ruby/MySQL Inventory Application!"
 home_screen
