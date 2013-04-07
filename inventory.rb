@@ -7,6 +7,13 @@ rescue
 	puts "You do not have the highline gem installed, password will be shown in plain text."
 end
 
+$sample_data_filename = "./sample_data.csv"
+# $db_hostname = 'localhost'
+# $db_user = 'root'
+# $db_pass = 'root'
+# $db_name = 'inventory'
+# $db_table_name = 'hello'
+
 # This function opens a connection to the database
 def open_connection
 	begin
@@ -216,6 +223,23 @@ def home_screen
 	end
 end
 
+def load_sample_data
+	begin # try to load the file
+		# open the file and create an array to hold it
+		sample_data_file = File.open($sample_data_filename)
+		sample_contents = Array.new{Array.new}
+		i = 0
+		# add the contents of the file to the two-dimensional array
+		sample_data_file.each do |line|
+			sample_contents[i] = line.split(",").map(&:strip)
+			i += 1
+		end
+		return sample_contents
+	rescue # catch exceptions
+		abort "Unable to continue - sample data file #{$sample_data_filename} not found."
+	end
+end
+
 
 puts "Welcome to the Ruby/MySQL Inventory Application!"
 print "Enter Database Hostname: "
@@ -235,9 +259,55 @@ puts "Database connection successful!"
 print "Enter the name of your table: "
 $db_table_name = gets.strip
 check_table = db.query "SHOW TABLES LIKE '#{$db_table_name}'"
-db.close
 if (check_table.num_rows > 0)
+	db.close
 	home_screen
 else
-	abort "Table does not exist in database."
+	user_choice = ""
+	loop do
+		print "Table does not exist in database, would you like to create it? (requires permissions) Y/N: "
+		user_choice = gets.strip.upcase
+		break if (user_choice == "Y" || user_choice == "N")
+	end
+	if (user_choice == "Y")
+		begin
+			db.query("CREATE TABLE IF NOT EXISTS #{$db_table_name} ( \
+				Barcode varchar(20) NOT NULL, \
+				ItemName varchar(40) NOT NULL, \
+			  	ItemCategory varchar(20) NOT NULL, \
+			  	Quantity int(11) NOT NULL, \
+			  	Price float NOT NULL, \
+			  	Description varchar(40) NOT NULL, \
+			  	UNIQUE KEY Barcode (Barcode) \
+			) ENGINE=MyISAM DEFAULT CHARSET=utf8;")
+		rescue Mysql::Error => e
+			puts e
+		end
+		puts "Table successfully created!"
+		loop do
+			print "Would you like to populate with sample data? (requires permissions) Y/N: "
+			user_choice = gets.strip.upcase
+			break if (user_choice == "Y" || user_choice == "N")
+		end
+		if (user_choice == "Y")
+			sample_data = load_sample_data
+			begin
+			sample_data.each do |a|
+				db.query("INSERT INTO #{$db_table_name} ( \
+					`Barcode`, `ItemName`, `ItemCategory`, `Quantity`, `Price`, `Description` \
+					) VALUES ( \
+					'#{a[0]}', '#{a[1]}', '#{a[2]}', #{a[3]}, #{a[4]}, '#{a[5]}')")
+			end
+			rescue Mysql::Error => e
+				puts "Could not populate table."
+				puts e
+			end
+		end
+		puts "Table populated successfully!"
+		db.close
+		home_screen
+	elsif (user_choice == "N")
+		abort "Goodbye!"
+	end	
 end
+db.close
